@@ -36,25 +36,20 @@ for item in track_list:
     names[i] = re.compile("mp3name\">(.*?)<").findall(item)
     i+=1
 
-i=0
-for date in dates:
-    log.write(str(dates[i]))
-    log.write("\n")
-    for link in links[i]:
-        log.write(link)
-        log.write("\n")
-    log.write("\n")
-    
-    for time in times[i]:
-        log.write(time)
-        log.write("\n")
-    log.write("\n")
-
-    for name in names[i]:
-        log.write(name)
-        log.write("\n")
-    log.write("\n")
+for i in range(len(dates)):
+    log.write(dates[i] + "\n")
+    for j in range(len(links[i])):
+        url = "http://staroeradio.ru" + links[i].pop() 
+        req = urllib2.urlopen(url)
+        page = req.read()
         
-    log.write('\n===========\n')
-    i+=1
-
+        id_list = re.compile('value="mp3ID=(.*?)"').findall(page)
+        
+        for id in id_list:
+            url = "http://server.audiopedia.su:8888/getmp3parms.php?mp3id=" + id 
+            req = urllib2.urlopen(url)
+            page = req.read()
+            log.write(page + "\n\n\n\n")
+        
+    
+ 
