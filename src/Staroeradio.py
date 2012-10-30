@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 Created on Oct 10, 2012
 
@@ -62,6 +63,8 @@ for i in range(len(dates)):
             url = "http://server.audiopedia.su:8888/getmp3parms.php?mp3id=" + id 
             req = urllib2.urlopen(url)
             page = req.read()
+            
+            log.write(page + "\n")
 
             lowqualitydir      = page[page.find('<lowqualitydir>') + 15 : page.find('</lowqualitydir>')]
             dir      = page[page.find('<dir>') + 5 : page.find('</dir>')]
@@ -73,7 +76,7 @@ for i in range(len(dates)):
             filename = filename.replace('"', "'")
             filename = filename.replace("'", "\'")
         
-            
+            '''
             cmd  = 'rtmpdump'            
             cmd += ' -r ' + tcUrl
             cmd += ' -a ' + app
@@ -82,11 +85,39 @@ for i in range(len(dates)):
             cmd += ' -p ' + pageUrl
             cmd += ' -y ' + '"' + filename + '"'
             cmd += ' -q --live'
-            cmd += ' | cvlc -\n'
+            cmd += ' | cvlc - --control dbus\n'
+            '''
             
-            os.system(cmd)
+            cmd  = 'rtmpdump'            
+            prm  =  'r=' + tcUrl + '&'
+            prm += 'a=' + app + '&'
+            #prm += 'f=' + flashVer + '&'
+            prm += 'W=' + swfUrl + '&'
+            prm += 'p=' + pageUrl + '&'
+            #prm += 'y=' + '"' + filename + '"' + '&'
+            prm += 'y=' + filename + '&'
+            prm += 'q'# + '&'
+            #prm += 'v'
+
+            prm = prm.replace('/', '%2F')
+            prm = prm.replace(' ', '%20')
             
-            log.write(page + "\n")
+            prm = '/?' + prm
+            
+            print prm
+            
+            import httplib
+            conn = httplib.HTTPConnection("127.0.0.1:60001")
+            conn.request("GET", prm)
+            r1 = conn.getresponse()
+            print r1.status, r1.reason
+            
+            r1.read()
+            
+            while(1):
+                pass            
+            #os.system(cmd)
+            
         
     
  
