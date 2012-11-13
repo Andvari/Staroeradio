@@ -1,16 +1,21 @@
+#!/usr/bin/env python
 '''
 Created on Oct 10, 2012
 
 @author: nemo
 '''
 
+import os
 import urllib2, re
 
 log = open("staroeradio.log", "wb")
 url = "http://staroeradio.ru/program"
 
+print "Opening URL"
 req = urllib2.urlopen(url)
+print "Start reading"
 page = req.read()
+print "Page is read\n"
 
 page = page [ page.find('mp3list') : ]
 page = page [ : page.find('program/full')]
@@ -28,6 +33,14 @@ links = {}
 times = {}
 names = {}
 i=0
+
+
+tcUrl       =   'rtmp://server.audiopedia.su/vod'
+app         =   'vod'
+flashVer    =   'LNX 11,2,202,243'
+swfUrl      =   'http://staroeradio.ru/sr-player32.swf'
+pageUrl     =   'http://staroeradio.ru'
+
 for item in track_list:
     date = item [ : item.find('<')]
     dates[i] = date
@@ -36,25 +49,75 @@ for item in track_list:
     names[i] = re.compile("mp3name\">(.*?)<").findall(item)
     i+=1
 
-i=0
-for date in dates:
-    log.write(str(dates[i]))
-    log.write("\n")
-    for link in links[i]:
-        log.write(link)
-        log.write("\n")
-    log.write("\n")
-    
-    for time in times[i]:
-        log.write(time)
-        log.write("\n")
-    log.write("\n")
-
-    for name in names[i]:
-        log.write(name)
-        log.write("\n")
-    log.write("\n")
+for i in range(len(dates)):
+    print dates[i]
+    log.write(dates[i] + "\n")
+    for j in range(len(links[i])):
+        url = "http://staroeradio.ru" + links[i].pop() 
+        req = urllib2.urlopen(url)
+        page = req.read()
         
-    log.write('\n===========\n')
-    i+=1
+        id_list = re.compile('value="mp3ID=(.*?)"').findall(page)
+        
+        for id in id_list:
+            url = "http://server.audiopedia.su:8888/getmp3parms.php?mp3id=" + id 
+            req = urllib2.urlopen(url)
+            page = req.read()
+            
+            log.write(page + "\n")
 
+            lowqualitydir      = page[page.find('<lowqualitydir>') + 15 : page.find('</lowqualitydir>')]
+            dir      = page[page.find('<dir>') + 5 : page.find('</dir>')]
+            name     = page[page.find('<fname>') + 7 : page.find('.mp3</fname>')]
+            filename = "mp3:" + dir + "/" + name
+            
+            print name
+            
+            filename = filename.replace('"', "'")
+            filename = filename.replace("'", "\'")
+        
+            '''
+            cmd  = 'rtmpdump'            
+            cmd += ' -r ' + tcUrl
+            cmd += ' -a ' + app
+            cmd += ' -f ' + flashVer
+            cmd += ' -W ' + swfUrl
+            cmd += ' -p ' + pageUrl
+            cmd += ' -y ' + '"' + filename + '"'
+            cmd += ' -q --live'
+            cmd += ' | cvlc - --control dbus\n'
+            '''
+            
+            cmd  = 'rtmpdump'            
+            prm  =  'r=' + tcUrl + '&'
+            prm += 'a=' + app + '&'
+            #prm += 'f=' + flashVer + '&'
+            prm += 'W=' + swfUrl + '&'
+            prm += 'p=' + pageUrl + '&'
+            #prm += 'y=' + '"' + filename + '"' + '&'
+            prm += 'y=' + filename + '&'
+            prm += 'q'# + '&'
+            #prm += 'v'
+
+            prm = prm.replace('/', '%2F')
+            prm = prm.replace(' ', '%20')
+            
+            prm = '/?' + prm
+            
+            print prm
+            
+            import httplib
+            conn = httplib.HTTPConnection("127.0.0.1:60001")
+            conn.request("GET", prm)
+            r1 = conn.getresponse()
+            print r1.status, r1.reason
+            
+            r1.read()
+            
+            while(1):
+                pass            
+            #os.system(cmd)
+            
+        
+    
+ 
